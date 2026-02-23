@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jobs</title>
+<style>
+  /* ── RESET & BASE ───────────────────────────────── */
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    background: #0e0e0e;
+    color: #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* ── VARIABLES ─────────────────────────────────── */
+  :root {
+    --accent:        #e8a628;
+    --accent-rgb:    232, 166, 40;
+    --accent-dim:    rgba(232,166,40,0.15);
+    --accent-border: rgba(232,166,40,0.3);
+    --accent-hover:  rgba(232,166,40,0.25);
+    --accent-glow:   rgba(232,166,40,0.35);
+    --card:          #181818;
+    --card2:         #202020;
+    --card-bg-dark:  #1a1400;
+    --card-bg-darker:#1f1800;
+    --border:        rgba(255,255,255,0.07);
+    --text-muted:    #6b6b6b;
+    --text-sub:      #9a9a9a;
+    --danger:        #e85252;
+    --danger-dim:    rgba(232,82,82,0.15);
+    --success:       #52c97a;
+    --success-dim:   rgba(82,201,122,0.15);
+    --online:        #52c97a;
+  }
+
+  /* ── LOADING ────────────────────────────────────── */
+  #loading {
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    height:100%; gap:0.75em;
+  }
+  .spinner {
+    width:2em; height:2em;
+    border:0.15em solid var(--accent-border);
+    border-top-color: var(--accent);
+    border-radius:50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  #loading p { color:var(--text-muted); font-size:0.85em; }
+
+  /* ── APP SHELL ──────────────────────────────────── */
+  #app { display:none; flex-direction:column; height:100%; }
+
+  /* ── HEADER ─────────────────────────────────────── */
+  .app-header {
+    padding: 1.1em 1.1em 0.6em;
+    flex-shrink: 0;
+  }
+  .app-header .greeting {
+    font-size:0.75em;
+    color: var(--text-muted);
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    margin-bottom:0.15em;
+  }
+  .app-header .name {
+    font-size:1.3em;
+    font-weight:700;
+    color:#fff;
+  }
+
+  /* ── ACTIVE JOB CARD ────────────────────────────── */
+
+  /* ── ACTIVE JOB CARD ─────────────────────────────────── */
+  .active-job-card {
+    margin: 3.5em 1em 0.8em;
+    background: linear-gradient(135deg, var(--card-bg-dark) 0%, var(--card-bg-darker) 100%);
+    border: 0.06em solid var(--accent-border);
+    border-radius:1em;
+    padding:1.2em;
+    position:relative;
+    overflow:hidden;
+    flex-shrink:0;
+  }
+  .active-job-card::before {
+    content:'';
+    position:absolute;
+    top:-50%; right:-20%;
+    width:10em; height:10em;
+    background: radial-gradient(circle, var(--accent-dim) 0%, transparent 70%);
+    pointer-events:none;
+  }
+  .active-job-card .job-header {
+    text-align: center;
+    margin-bottom: 1em;
+    padding-bottom: 0.8em;
+    border-bottom: 0.06em solid var(--accent-border);
+  }
+  .active-job-card .job-header.no-border {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .active-job-card .job-name {
+    font-size:1.1em;
+    font-weight:700;
+    color:#fff;
+    margin-bottom: 0.3em;
+  }
+  .active-job-card .job-rank {
+    font-size:0.75em;
+    color:var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .active-job-card .hours-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1em;
+    gap: 1em;
+  }
+  .active-job-card .hours-block {
+    flex: 1;
+    text-align: center;
+  }
+  .active-job-card .hours-label {
+    font-size: 0.65em;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.3em;
+  }
+  .active-job-card .hours-value {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .active-job-card .button-row {
+    display: flex;
+    gap: 0.6em;
+  }
+  .active-job-card .duty-btn,
+  .active-job-card .quit-btn {
+    flex: 1;
+    padding: 0.6em;
+    border-radius: 0.6em;
+    font-size: 0.8em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 0.06em solid;
+  }
+  .active-job-card .duty-btn {
+    background: var(--success-dim);
+    border-color: rgba(82,201,122,0.25);
+    color: var(--success);
+  }
+  .active-job-card .duty-btn:hover { background: rgba(82,201,122,0.25); }
+  .active-job-card .duty-btn:active { transform: scale(0.97); }
+  .active-job-card .duty-btn.on-duty {
+    background: var(--accent-dim);
+    border-color: var(--accent-border);
+    color: var(--accent);
+  }
+  .active-job-card .quit-btn {
+    background: var(--danger-dim);
+    border-color: rgba(232,82,82,0.25);
+    color: var(--danger);
+  }
+  .active-job-card .quit-btn:hover { background: rgba(232,82,82,0.25); }
+  .active-job-card .quit-btn:active { transform: scale(0.97); }
+  .active-job-card .quit-btn.holding {
+    background: var(--danger);
+    color: #fff;
+  }
+
+  /* ── TABS ───────────────────────────────────────── */
+  .tabs {
+    display:flex;
+    padding:0 1em;
+    gap:0.5em;
+    margin-bottom:0.7em;
+    flex-shrink:0;
+  }
+  .tab-btn {
+    flex:1;
+    padding:0.55em 0.3em;
+    background:var(--card);
+    border:0.06em solid var(--border);
+    border-radius:0.6em;
+    color:var(--text-sub);
+    font-size:0.78em;
+    font-weight:600;
+    cursor:pointer;
+    transition:all 0.2s;
+    text-align:center;
+  }
+  .tab-btn.active {
+    background:var(--accent-dim);
+    border-color:var(--accent-border);
+    color:var(--accent);
+  }
+  .tab-btn:active { transform:scale(0.96); }
+
+  /* ── SCROLL CONTAINER ───────────────────────────── */
+  .scroll-area {
+    flex:1;
+    overflow-y:auto;
+    padding:0.5em 1em 1em;
+    -webkit-overflow-scrolling:touch;
+  }
+  .scroll-area::-webkit-scrollbar { display:none; }
+
+  /* ── SECTION LABEL ──────────────────────────────── */
+  .section-label {
+    font-size:0.7em;
+    color:var(--text-muted);
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    margin-bottom:0.5em;
+    padding-left:0.2em;
+  }
+  .section-label:first-child {
+    margin-top:0.5em;
+  }
+
+  /* ══════════════════════════════════════════════════
+     TAB: MY JOBS
+  ══════════════════════════════════════════════════ */
+  .jobs-list { display:flex; flex-direction:column; gap:0.55em; }
+
+  .job-card {
+    background:var(--card);
+    border:0.06em solid var(--border);
+    border-radius:0.85em;
+    padding:0.85em 1em;
+    display:flex; align-items:center; gap:0.75em;
+    cursor:pointer;
+    transition:all 0.2s;
+    position:relative;
+    overflow:hidden;
+  }
+  .job-card.is-active {
+    border-color:var(--accent-border);
+    background: linear-gradient(135deg, var(--card-bg-dark) 0%, #181818 100%);
+  }
+  .job-card:active { transform:scale(0.98); }
+  .job-card:hover { background:var(--card2); }
+  .job-card.is-active:hover { background:linear-gradient(135deg, var(--card-bg-darker), #1a1a1a); }
+
+  .job-card .job-icon {
+    width:2.4em; height:2.4em;
+    background:var(--accent-dim);
+    border-radius:0.6em;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.1em;
+    flex-shrink:0;
+  }
+  .job-card.is-active .job-icon {
+    background:var(--accent-hover);
+  }
+  .job-card .job-info { flex:1; min-width:0; }
+  .job-card .job-info .jname {
+    font-size:0.9em;
+    font-weight:600;
+    color:#fff;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .job-card .job-info .jgrade {
+    font-size:0.75em;
+    color:var(--text-sub);
+    margin-top:0.15em;
+  }
+  .job-card .active-badge {
+    font-size:0.65em;
+    font-weight:700;
+    color:var(--accent) !important;
+    background:var(--accent-dim) !important;
+    border:0.06em solid var(--accent-border) !important;
+    padding:0.2em 0.55em;
+    border-radius:2em;
+    flex-shrink:0;
+  }
+  .job-card .switch-chevron {
+    color:var(--text-muted);
+    font-size:0.9em;
+    flex-shrink:0;
+  }
+
+  /* ── UNEMPLOYED EMPTY STATE ─────────────────────── */
+  .empty-state {
+    text-align:center;
+    padding:3em 1em;
+  }
+  .empty-state .empty-icon {
+    font-size:3em;
+    margin-bottom:0.4em;
+    opacity:0.3;
+  }
+  .empty-state p {
+    color:var(--text-muted);
+    font-size:0.85em;
+    line-height:1.5;
+  }
+
+  /* ══════════════════════════════════════════════════
+     TAB: BOSS MENU
+  ══════════════════════════════════════════════════ */
+
+  /* ── HIRE BAR ───────────────────────────────────── */
+  .hire-bar {
+    display:flex; gap:0.5em;
+    margin-bottom:0.8em;
+  }
+  .hire-bar input {
+    flex:1;
+    background:var(--card);
+    border:0.06em solid var(--border);
+    border-radius:0.65em;
+    padding:0.65em 0.85em;
+    color:#fff;
+    font-size:0.82em;
+    outline:none;
+    transition:border-color 0.2s;
+  }
+  .hire-bar input:focus { border-color:var(--accent-border); }
+  .hire-bar input::placeholder { color:var(--text-muted); }
+  .hire-bar .hire-btn {
+    background:var(--accent);
+    border:none;
+    border-radius:0.65em;
+    padding:0.65em 1em;
+    color:#000;
+    font-size:0.82em;
+    font-weight:700;
+    cursor:pointer;
+    transition:all 0.2s;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .hire-bar .hire-btn:active { transform:scale(0.95); }
+  .hire-bar .hire-btn:hover { background:#f0b52e; }
+
+  /* ── EMPLOYEE CARDS ─────────────────────────────── */
+  .employee-list { display:flex; flex-direction:column; gap:0.55em; }
+
+  .employee-card {
+    background:var(--card);
+    border:0.06em solid var(--border);
+    border-radius:0.85em;
+    padding:0.8em 1em;
+  }
+  .employee-card .emp-row {
+    display:flex; align-items:center; gap:0.7em;
+  }
+  .emp-avatar {
+    width:2.2em; height:2.2em;
+    background:var(--card2);
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.85em;
+    font-weight:700;
+    color:var(--text-sub);
+    flex-shrink:0;
+    position:relative;
+  }
+  .emp-avatar .online-dot {
+    position:absolute;
+    bottom:0; right:0;
+    width:0.55em; height:0.55em;
+    background:var(--online);
+    border-radius:50%;
+    border:0.1em solid #0e0e0e;
+  }
+  .emp-avatar .duty-dot {
+    position:absolute;
+    bottom:0; right:0;
+    width:0.55em; height:0.55em;
+    border-radius:50%;
+    border:0.1em solid #0e0e0e;
+  }
+  .emp-avatar .duty-dot.on-duty {
+    background: #52c97a; /* Green */
+  }
+  .emp-avatar .duty-dot.off-duty {
+    background: #e85252; /* Red */
+  }
+  .emp-info { flex:1; min-width:0; }
+  .emp-info .ename {
+    font-size:0.88em;
+    font-weight:600;
+    color:#fff;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .emp-info .ecid {
+    font-size:0.7em;
+    color:var(--text-muted);
+    margin-top:0.1em;
+  }
+  .emp-grade-badge {
+    font-size:0.68em;
+    color:var(--accent);
+    background:var(--accent-dim);
+    border:0.06em solid var(--accent-hover);
+    padding:0.2em 0.55em;
+    border-radius:2em;
+    flex-shrink:0;
+  }
+
+  /* ── EMPLOYEE ACTIONS (expand) ──────────────────── */
+  .emp-actions {
+    display:none;
+    margin-top:0.7em;
+    padding-top:0.7em;
+    border-top:0.06em solid var(--border);
+    gap:0.5em;
+    flex-direction:column;
+  }
+  .emp-actions.open { display:flex; }
+
+  .grade-row {
+    display:flex; gap:0.5em; align-items:center;
+  }
+    padding:0.5em 0.8em;
+  .grade-row .apply-grade-btn:hover { background:var(--accent-hover); }
+  .grade-row select {
+    flex:1;
+    background:var(--card2);
+    border:0.06em solid var(--border);
+    border-radius:0.55em;
+    padding:0.5em 0.65em;
+    color:#fff;
+    font-size:0.8em;
+    outline:none;
+  }
+  .grade-row select:focus {
+    border-color: var(--accent-border);
+  }
+  .grade-row .apply-grade-btn {
+    padding: 0.5em 0.8em;
+    background: var(--accent-dim);
+    border: 0.06em solid var(--accent-border);
+    border-radius: 0.55em;
+    color: var(--accent);
+    font-size: 0.78em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .grade-row .apply-grade-btn:active { transform:scale(0.95); }
+  .grade-row .apply-grade-btn:hover { background:var(--accent-hover); }
+
+  .action-row { display:flex; gap:0.5em; }
+  .fire-btn {
+    flex:1;
+    padding:0.55em;
+    background:var(--danger-dim);
+    border:0.06em solid rgba(232,82,82,0.25);
+    border-radius:0.55em;
+    color:var(--danger);
+    font-size:0.78em;
+    font-weight:600;
+    cursor:pointer;
+    transition:all 0.2s;
+    text-align:center;
+  }
+  .fire-btn:active { transform:scale(0.96); }
+  .fire-btn:hover { background:rgba(232,82,82,0.25); }
+
+  /* ── NO BOSS ACCESS ─────────────────────────────── */
+  .no-boss {
+    text-align:center;
+    padding:3em 1.5em;
+  }
+  .no-boss .nb-icon { font-size:2.5em; margin-bottom:0.5em; opacity:0.3; }
+  .no-boss p { color:var(--text-muted); font-size:0.82em; line-height:1.6; }
+
+  /* ── TOAST ──────────────────────────────────────── */
+  #toast {
+    position:fixed;
+    bottom:1em; left:50%; transform:translateX(-50%) translateY(3em);
+    background:#242424;
+    border:0.06em solid var(--border);
+    border-radius:0.7em;
+    padding:0.6em 1.1em;
+    font-size:0.8em;
+    color:#fff;
+    white-space:nowrap;
+    transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+    opacity:0;
+    z-index:999;
+    pointer-events:none;
+  }
+  #toast.show {
+    transform:translateX(-50%) translateY(0);
+    opacity:1;
+  }
+  #toast.success { border-color:rgba(82,201,122,0.4); color:var(--success); }
+  #toast.error   { border-color:rgba(232,82,82,0.4);  color:var(--danger);  }
+
+  /* ── CONFIRM MODAL ──────────────────────────────── */
+  .modal-overlay {
+    display:none;
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.7);
+    z-index:998;
+    align-items:center; justify-content:center;
+  }
+  .modal-overlay.open { display:flex; }
+  .modal-box {
+    background:#1a1a1a;
+    border:0.06em solid var(--border);
+    border-radius:1em;
+    padding:1.3em 1.2em;
+    width:82%;
+    text-align:center;
+  }
+  .modal-box h3 { font-size:0.95em; font-weight:700; margin-bottom:0.4em; }
+  .modal-box p  { font-size:0.8em; color:var(--text-sub); margin-bottom:1em; line-height:1.5; }
+  .modal-btns   { display:flex; gap:0.5em; }
+  .modal-btns button {
+    flex:1; padding:0.65em;
+    border-radius:0.65em;
+    font-size:0.82em;
+    font-weight:600;
+    cursor:pointer;
+    border:0.06em solid transparent;
+    transition:all 0.2s;
+  }
+  .modal-cancel { background:var(--card2); color:var(--text-sub); border-color:var(--border) !important; }
+  .modal-confirm-danger { background:var(--danger-dim); color:var(--danger); border-color:rgba(232,82,82,0.3) !important; }
+  .modal-btns button:active { transform:scale(0.96); }
+
+  /* ── SKELETON LOADER ────────────────────────────── */
+  .skeleton {
+    background: linear-gradient(90deg, #1a1a1a 25%, #222 50%, #1a1a1a 75%);
+    background-size:200% 100%;
+    animation:shimmer 1.2s infinite;
+    border-radius:0.5em;
+    height:1em;
+  }
+  @keyframes shimmer { to { background-position:-200% 0; } }
+  .skeleton-card {
+    background:var(--card);
+    border:0.06em solid var(--border);
+    border-radius:0.85em;
+    padding:0.85em 1em;
+    display:flex; align-items:center; gap:0.75em;
+    margin-bottom:0.55em;
+  }
+  .skel-avatar { width:2.4em; height:2.4em; border-radius:0.6em; flex-shrink:0; }
+  .skel-lines  { flex:1; display:flex; flex-direction:column; gap:0.4em; }
+  .skel-line1  { width:60%; }
+  .skel-line2  { width:40%; height:0.75em; }
+
+</style>
+<script>
+// Fetch and apply accent color immediately before anything renders
+(async function() {
+  try {
+    const res = await fetch(`https://${GetParentResourceName()}/codem-phone:customApp:y-jobmanager:init`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    const data = await res.json();
+    
+    if (data && data.accentColor) {
+      const hex = data.accentColor;
+      const r = parseInt(hex.slice(1,3), 16);
+      const g = parseInt(hex.slice(3,5), 16);
+      const b = parseInt(hex.slice(5,7), 16);
+      
+      function darken(v, pct) { return Math.max(0, Math.round(v * pct)); }
+      function toHex(v) { return v.toString(16).padStart(2,'0'); }
+      const cardBgDark = `#${toHex(darken(r,0.12))}${toHex(darken(g,0.12))}${toHex(darken(b,0.12))}`;
+      const cardBgDarker = `#${toHex(darken(r,0.10))}${toHex(darken(g,0.10))}${toHex(darken(b,0.10))}`;
+      
+      const root = document.documentElement;
+      root.style.setProperty('--accent', hex);
+      root.style.setProperty('--accent-rgb', `${r}, ${g}, ${b}`);
+      root.style.setProperty('--accent-dim', `rgba(${r},${g},${b},0.15)`);
+      root.style.setProperty('--accent-border', `rgba(${r},${g},${b},0.3)`);
+      root.style.setProperty('--accent-hover', `rgba(${r},${g},${b},0.25)`);
+      root.style.setProperty('--accent-glow', `rgba(${r},${g},${b},0.35)`);
+      root.style.setProperty('--card-bg-dark', cardBgDark);
+      root.style.setProperty('--card-bg-darker', cardBgDarker);
+    }
+  } catch(e) {
+    // Use defaults if fetch fails
+  }
+})();
+
+function GetParentResourceName() {
+  return window.location.hostname === 'localhost' ? 'y-jobmanager' : window.GetParentResourceName();
+}
+</script>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Loading...</p>
+</div>
+
+<!-- App Shell -->
+<div id="app">
+
+  <!-- Active Job Card -->
+  <div class="active-job-card" id="activeJobCard" style="display:none">
+    <div class="job-header" id="jobHeader">
+      <div class="job-name" id="activeJobName">—</div>
+      <div class="job-rank" id="activeJobRank">—</div>
+    </div>
+    
+    <div class="hours-row">
+      <div class="hours-block">
+        <div class="hours-label">This Week</div>
+        <div class="hours-value" id="weeklyHours">— hrs</div>
+      </div>
+      <div class="hours-block">
+        <div class="hours-label">All Time</div>
+        <div class="hours-value" id="totalHours">— hrs</div>
+      </div>
+    </div>
+    
+    <div class="button-row">
+      <button class="duty-btn" id="dutyBtn" onclick="toggleDuty()">Go On Duty</button>
+      <button id="quitBtn" class="quit-btn" onmousedown="startQuitHold()" onmouseup="cancelQuitHold()" onmouseleave="cancelQuitHold()" ontouchstart="startQuitHold()" ontouchend="cancelQuitHold()">Quit Job</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="tabBar">
+    <button class="tab-btn active" id="tab-jobs"   onclick="switchTab('jobs')">My Jobs</button>
+    <button class="tab-btn"        id="tab-boss"   onclick="switchTab('boss')">Boss Menu</button>
+  </div>
+
+  <!-- Scroll Area -->
+  <div class="scroll-area" id="scrollArea">
+
+    <!-- ── MY JOBS TAB ───────────────────────────── -->
+    <div id="pane-jobs">
+      <div class="section-label" style="margin-bottom:0.7em">Available Jobs</div>
+      <div class="jobs-list" id="jobsList"></div>
+    </div>
+
+    <!-- ── BOSS MENU TAB ─────────────────────────── -->
+    <div id="pane-boss" style="display:none">
+
+      <!-- No boss access -->
+      <div class="no-boss" id="noBossMsg" style="display:none">
+        <div class="nb-icon">🔒</div>
+        <p>You don't have boss access<br>for your current job.</p>
+      </div>
+
+      <!-- Boss content -->
+      <div id="bossContent" style="display:none">
+        <div class="section-label" style="margin-bottom:0.5em">Hire by ID / CID</div>
+        <div class="hire-bar">
+          <input id="hireInput" type="text" placeholder="Enter Person's ID or CID…" maxlength="20">
+          <button class="hire-btn" onclick="hirePlayer()">Hire</button>
+        </div>
+        <div class="section-label" style="margin-bottom:0.6em" id="empCountLabel">Employees</div>
+        <div class="employee-list" id="employeeList"></div>
+      </div>
+    </div>
+
+  </div><!-- /scroll-area -->
+</div><!-- /app -->
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box">
+    <h3 id="modalTitle">Confirm</h3>
+    <p id="modalBody">Are you sure?</p>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-confirm-danger" id="modalConfirmBtn" onclick="doModalAction()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// State
+// ════════════════════════════════════════════════════════════════
+let playerData   = null;
+let appData      = null;   // full init payload from server
+let currentTab   = 'jobs';
+let pendingCBs   = {};
+let gradeOptions = [];     // for boss dropdown
+let modalAction  = null;
+let expandedEmp  = null;   // currently expanded employee card id
+let onDuty       = false;  // duty state
+
+// ════════════════════════════════════════════════════════════════
+// postMessage bridge
+// ════════════════════════════════════════════════════════════════
+function genId() {
+  return 'cb_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
+}
+
+function sendCallback(action, payload, toServer) {
+  if (toServer === undefined) toServer = true;
+  return new Promise(resolve => {
+    const id = genId();
+    pendingCBs[id] = resolve;
+    window.parent.postMessage({
+      type: 'mphone:callback',
+      action, payload: payload || {}, callbackId: id, server: toServer
+    }, '*');
+    setTimeout(() => {
+      if (pendingCBs[id]) { resolve({ success:false, error:'Timeout' }); delete pendingCBs[id]; }
+    }, 10000);
+  });
+}
+
+window.addEventListener('message', function(ev) {
+  const d = ev.data;
+  if (!d || !d.type) return;
+  
+  switch(d.type) {
+    case 'mphone:init':
+      playerData = d.player;
+      initApp();
+      break;
+    case 'mphone:callback:response':
+      const cb = pendingCBs[d.callbackId];
+      if (cb) { cb(d.result); delete pendingCBs[d.callbackId]; }
+      break;
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+// Init
+// ════════════════════════════════════════════════════════════════
+// Apply accent color dynamically
+function applyAccentColor(hex) {
+  if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) hex = 'var(--accent)';
+
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+
+  function darken(v, pct) { return Math.max(0, Math.round(v * pct)); }
+  function toHex(v) { return v.toString(16).padStart(2,'0'); }
+  const cardBgDark = `#${toHex(darken(r,0.12))}${toHex(darken(g,0.12))}${toHex(darken(b,0.12))}`;
+  const cardBgDarker = `#${toHex(darken(r,0.10))}${toHex(darken(g,0.10))}${toHex(darken(b,0.10))}`;
+
+  const root = document.documentElement;
+  root.style.setProperty('--accent', hex);
+  root.style.setProperty('--accent-rgb', `${r}, ${g}, ${b}`);
+  root.style.setProperty('--accent-dim', `rgba(${r},${g},${b},0.15)`);
+  root.style.setProperty('--accent-border', `rgba(${r},${g},${b},0.3)`);
+  root.style.setProperty('--accent-hover', `rgba(${r},${g},${b},0.25)`);
+  root.style.setProperty('--accent-glow', `rgba(${r},${g},${b},0.35)`);
+  root.style.setProperty('--card-bg-dark', cardBgDark);
+  root.style.setProperty('--card-bg-darker', cardBgDarker);
+}
+
+// Load hours for current job
+async function loadHours() {
+  const res = await sendCallback('getHours', {}, true);
+  if (res && res.success) {
+    const weeklyText = res.weeklyHours + ' hrs ' + res.weeklyMins + ' mins';
+    const totalText = res.totalHours + ' hrs ' + res.totalMins + ' mins';
+    document.getElementById('weeklyHours').textContent = weeklyText;
+    document.getElementById('totalHours').textContent = totalText;
+  } else {
+    document.getElementById('weeklyHours').textContent = '0 hrs';
+    document.getElementById('totalHours').textContent = '0 hrs';
+  }
+}
+
+
+async function initApp() {
+  const res = await sendCallback('init', {}, true);
+  if (!res || !res.success) {
+    showToast('Failed to load data', 'error');
+    return;
+  }
+  
+  // Apply accent color FIRST, before anything else
+  if (res.accentColor) {
+    applyAccentColor(res.accentColor);
+  }
+  
+  appData = res;
+
+  // Show active job card
+  if (res.currentJob && res.currentJob !== 'unemployed') {
+    const jobCfg = res.jobs.find(j => j.name === res.currentJob);
+    document.getElementById('activeJobName').textContent =
+      (jobCfg ? jobCfg.label : res.currentJob);
+    document.getElementById('activeJobRank').textContent = res.currentGradeLabel || 'Employee';
+    document.getElementById('activeJobCard').style.display = 'block';
+    
+    // Load hours
+    loadHours();
+    
+    // Show quit button for non-unemployed jobs
+    const quitBtn = document.getElementById('quitBtn');
+    if (quitBtn) quitBtn.style.display = '';
+    
+    // Set duty button state
+    updateDutyButton(res.onDuty || false);
+  } else {
+    // Show unemployed card but hide quit button, duty button, and hours
+    document.getElementById('activeJobName').textContent = 'Unemployed';
+    document.getElementById('activeJobRank').textContent = 'Civilian';
+    document.getElementById('activeJobCard').style.display = 'block';
+    
+    const quitBtn = document.getElementById('quitBtn');
+    if (quitBtn) quitBtn.style.display = 'none';
+    
+    const dutyBtn = document.getElementById('dutyBtn');
+    if (dutyBtn) dutyBtn.style.display = 'none';
+    
+    // Hide hours row
+    const hoursRow = document.querySelector('.hours-row');
+    if (hoursRow) hoursRow.style.display = 'none';
+    
+    // Remove border under name
+    const jobHeader = document.getElementById('jobHeader');
+    if (jobHeader) jobHeader.classList.add('no-border');
+  }
+
+  // Render jobs tab
+  renderJobs(res);
+
+  // Hide/show boss tab
+  if (!res.canSeeBossMenu) {
+    document.getElementById('tab-boss').style.display = 'none';
+  }
+
+  // Show app
+  document.getElementById('loading').style.display = 'none';
+  const appEl = document.getElementById('app');
+  appEl.style.display = 'flex';
+  appEl.style.flexDirection = 'column';
+  appEl.style.height = '100%';
+}
+
+// ════════════════════════════════════════════════════════════════
+// Tabs
+// ════════════════════════════════════════════════════════════════
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-jobs').classList.toggle('active', tab === 'jobs');
+  document.getElementById('tab-boss').classList.toggle('active', tab === 'boss');
+  document.getElementById('pane-jobs').style.display = tab === 'jobs' ? 'block' : 'none';
+  document.getElementById('pane-boss').style.display = tab === 'boss' ? 'block' : 'none';
+
+  if (tab === 'boss' && appData) {
+    loadBossMenu();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MY JOBS TAB
+// ════════════════════════════════════════════════════════════════
+function renderJobs(data) {
+  const list = document.getElementById('jobsList');
+  list.innerHTML = '';
+
+  if (!data.jobs || data.jobs.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">💼</div>
+        <p>No jobs available.<br>Contact an admin.</p>
+      </div>`;
+    return;
+  }
+
+  // Filter to only jobs the player actually has in multijobs database
+  const playerJobs = data.playerJobs || [];
+  const availableJobs = data.jobs.filter(job => 
+    playerJobs.some(pj => pj.name === job.name)
+  );
+
+  if (availableJobs.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">💼</div>
+        <p>You don't have any jobs.<br>Contact a business owner to get hired.</p>
+      </div>`;
+    return;
+  }
+
+  // Sort jobs alphabetically by label
+  availableJobs.sort((a, b) => a.label.localeCompare(b.label));
+
+  for (const job of availableJobs) {
+    const isActive = job.name === data.currentJob;
+    const card = document.createElement('div');
+    card.className = 'job-card' + (isActive ? ' is-active' : '');
+    card.dataset.job = job.name;
+
+    // Find player's grade for this job
+    const playerJob = playerJobs.find(pj => pj.name === job.name);
+    const gradeText = isActive
+      ? (data.currentGradeLabel || 'Employee')
+      : (playerJob ? playerJob.gradeLabel : 'Employee');
+
+    card.innerHTML = `
+      <div class="job-icon">${job.icon || '💼'}</div>
+      <div class="job-info">
+        <div class="jname">${job.label}</div>
+        <div class="jgrade">${gradeText}</div>
+      </div>
+      ${isActive
+        ? '<div class="active-badge">ACTIVE</div>'
+        : '<div class="switch-chevron">›</div>'}
+    `;
+
+    if (!isActive) {
+      card.addEventListener('click', () => confirmSwitchJob(job.name, job.label));
+    }
+
+    list.appendChild(card);
+  }
+}
+
+function confirmSwitchJob(jobName, jobLabel) {
+  switchJob(jobName, jobLabel);
+}
+
+async function switchJob(jobName, jobLabel) {
+  
+  // Get player's grade for this job
+  const playerJob = appData.playerJobs.find(pj => pj.name === jobName);
+  if (!playerJob) {
+    showToast('You do not have this job', 'error');
+    return;
+  }
+  
+  
+  const res = await sendCallback('switchJob', { job: jobName, grade: playerJob.grade }, true);
+  
+  if (!res || !res.success) {
+    showToast(res && res.error ? res.error : 'Failed to switch job', 'error');
+    return;
+  }
+
+  // Update local state
+  appData.currentJob        = jobName;
+  appData.currentGradeLevel = res.gradeLevel;
+  appData.currentGradeLabel = res.gradeLabel;
+  appData.canSeeBossMenu    = res.canSeeBossMenu;
+
+  // Update active card - use the config to get the full label
+  const jobCfg = appData.jobs.find(j => j.name === jobName);
+  const displayLabel = jobCfg ? jobCfg.label : jobLabel;
+  
+  document.getElementById('activeJobName').textContent = displayLabel;
+  document.getElementById('activeJobRank').textContent = res.gradeLabel;
+  document.getElementById('activeJobCard').style.display = 'block';
+  
+  // Show quit button for non-unemployed jobs
+  const quitBtn = document.getElementById('quitBtn');
+  if (quitBtn) {
+    quitBtn.style.display = jobName !== 'unemployed' ? '' : 'none';
+  }
+  
+  // Show/hide duty button and hours
+  const dutyBtn = document.getElementById('dutyBtn');
+  if (dutyBtn) {
+    dutyBtn.style.display = jobName !== 'unemployed' ? '' : 'none';
+  }
+  
+  const hoursRow = document.querySelector('.hours-row');
+  if (hoursRow) {
+    hoursRow.style.display = jobName !== 'unemployed' ? '' : 'none';
+  }
+  
+  // Toggle border under name
+  const jobHeader = document.getElementById('jobHeader');
+  if (jobHeader) {
+    if (jobName === 'unemployed') {
+      jobHeader.classList.add('no-border');
+    } else {
+      jobHeader.classList.remove('no-border');
+    }
+  }
+
+  // Update duty button if present
+  if (res.onDuty !== undefined) {
+    updateDutyButton(res.onDuty);
+  }
+
+  // Show/hide boss tab
+  const bossTab = document.getElementById('tab-boss');
+  if (res.canSeeBossMenu) {
+    bossTab.style.display = '';
+    // Clear boss menu state so it reloads fresh
+    bossPermissions = { canHire: false, canFire: false, canChangeRank: false };
+    document.getElementById('employeeList').innerHTML = '';
+  } else {
+    bossTab.style.display = 'none';
+    if (currentTab === 'boss') switchTab('jobs');
+  }
+
+  // Re-render list to update ACTIVE badge
+  renderJobs(appData);
+  
+  // Reload hours for new job
+  loadHours();
+  
+  showToast('Switched to ' + displayLabel, 'success');
+}
+
+// ════════════════════════════════════════════════════════════════
+// DUTY
+// ════════════════════════════════════════════════════════════════
+function updateDutyButton(isDuty) {
+  onDuty = isDuty;
+  const btn = document.getElementById('dutyBtn');
+  if (btn) {
+    if (isDuty) {
+      btn.textContent = 'Go Off Duty';
+      btn.classList.add('on-duty');
+    } else {
+      btn.textContent = 'Go On Duty';
+      btn.classList.remove('on-duty');
+    }
+  }
+}
+
+async function toggleDuty() {
+  // Can't go on duty if unemployed
+  if (appData.currentJob === 'unemployed') {
+    showToast('You must have a job to go on duty', 'error');
+    return;
+  }
+  
+  const res = await sendCallback('toggleDuty', {}, true);
+  if (res && res.success) {
+    updateDutyButton(res.onDuty);
+    showToast(res.onDuty ? 'You are now on duty' : 'You are now off duty', 'success');
+    // Reload hours since they may have changed
+    loadHours();
+  } else {
+    showToast(res && res.error ? res.error : 'Failed to toggle duty', 'error');
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// QUIT
+// ════════════════════════════════════════════════════════════════
+let quitHoldTimer = null;
+let quitHoldStarted = false;
+
+function startQuitHold() {
+  quitHoldStarted = true;
+  const btn = document.getElementById('quitBtn');
+  if (!btn) return;
+  
+  btn.textContent = 'Hold to Quit (5)';
+  btn.classList.add('holding');
+  
+  let countdown = 5;
+  quitHoldTimer = setInterval(function() {
+    countdown--;
+    if (countdown > 0) {
+      btn.textContent = 'Hold to Quit (' + countdown + ')';
+    } else {
+      clearInterval(quitHoldTimer);
+      executeQuit();
+    }
+  }, 1000);
+}
+
+function cancelQuitHold() {
+  if (!quitHoldStarted) return;
+  
+  clearInterval(quitHoldTimer);
+  quitHoldStarted = false;
+  
+  const btn = document.getElementById('quitBtn');
+  if (btn) {
+    btn.textContent = 'Quit Job';
+    btn.classList.remove('holding');
+  }
+}
+
+async function executeQuit() {
+  quitHoldStarted = false;
+  const btn = document.getElementById('quitBtn');
+  if (btn) {
+    btn.textContent = 'Quitting...';
+    btn.classList.remove('holding');
+  }
+  
+  const res = await sendCallback('quitJob', {}, true);
+  if (res && res.success) {
+    showToast('You have quit your job', 'error');
+    
+    // Reset button before reload
+    if (btn) btn.textContent = 'Quit Job';
+    
+    // Reload the entire app to refresh all data
+    setTimeout(() => {
+      initApp();
+    }, 500);
+  } else {
+    showToast(res && res.error ? res.error : 'Failed to quit', 'error');
+    if (btn) btn.textContent = 'Quit Job';
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// BOSS MENU TAB
+// ════════════════════════════════════════════════════════════════
+let bossPermissions = { canHire: false, canFire: false, canChangeRank: false };
+
+async function loadBossMenu() {
+  if (!appData.canSeeBossMenu) {
+    document.getElementById('noBossMsg').style.display = 'block';
+    document.getElementById('bossContent').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('noBossMsg').style.display = 'none';
+  document.getElementById('bossContent').style.display = 'block';
+
+  // Skeleton
+  const empList = document.getElementById('employeeList');
+  empList.innerHTML = skeletonCards(3);
+
+  const res = await sendCallback('getEmployees', {}, true);
+  if (!res || !res.success) {
+    empList.innerHTML = `<div class="empty-state"><p>Failed to load employees</p></div>`;
+    return;
+  }
+
+  gradeOptions = res.grades || [];
+  bossPermissions = res.permissions || { canHire: false, canFire: false, canChangeRank: false };
+  
+  // Hide/show hire bar based on permission
+  const hireBar = document.querySelector('.hire-bar');
+  if (hireBar) {
+    hireBar.style.display = bossPermissions.canHire ? 'flex' : 'none';
+  }
+  
+  renderEmployees(res.employees || []);
+}
+
+function renderEmployees(employees) {
+  const empList = document.getElementById('employeeList');
+  const countLabel = document.getElementById('empCountLabel');
+  countLabel.textContent = 'Employees (' + employees.length + ')';
+  empList.innerHTML = '';
+
+  if (employees.length === 0) {
+    empList.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">👥</div>
+        <p>No employees found.</p>
+      </div>`;
+    return;
+  }
+
+  for (const emp of employees) {
+    empList.appendChild(buildEmpCard(emp));
+  }
+}
+
+function buildEmpCard(emp) {
+  const card = document.createElement('div');
+  card.className = 'employee-card';
+  card.dataset.cid = emp.citizenid;
+
+  const initials = emp.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+
+  // Check if this employee can be managed
+  const canManage = emp.canManage !== false;  // Default true for backwards compat
+
+  // Grade dropdown options
+  const gradeOpts = gradeOptions.map(g =>
+    `<option value="${g.level}" ${g.level === emp.grade ? 'selected' : ''}>${g.label}</option>`
+  ).join('');
+
+  // Build actions HTML conditionally
+  let actionsHTML = '<div class="emp-actions" id="emp-actions-' + emp.citizenid + '">';
+  
+  if (!canManage) {
+    // Show message for employees you can't manage
+    actionsHTML += `
+      <div class="action-row">
+        <div style="text-align:center; color:rgba(255,255,255,0.5); font-size:0.75em; padding:0.5em;">
+          Cannot manage employees at or above your rank
+        </div>
+      </div>`;
+  } else {
+    // Show normal actions
+    if (bossPermissions.canChangeRank) {
+      actionsHTML += `
+        <div class="grade-row">
+          <select id="grade-select-${emp.citizenid}">${gradeOpts}</select>
+          <button class="apply-grade-btn" onclick="changeGrade('${emp.citizenid}')">Set Rank</button>
+        </div>`;
+    }
+    
+    if (bossPermissions.canFire) {
+      actionsHTML += `
+        <div class="action-row">
+          <button class="fire-btn" onmousedown="startFireHold('${emp.citizenid}', '${emp.name}')" onmouseup="cancelFireHold()" onmouseleave="cancelFireHold()" ontouchstart="startFireHold('${emp.citizenid}', '${emp.name}')" ontouchend="cancelFireHold()">Fire</button>
+        </div>`;
+    }
+  }
+  
+  actionsHTML += '</div>';
+
+  card.innerHTML = `
+    <div class="emp-row" onclick="toggleEmp('${emp.citizenid}', this)">
+      <div class="emp-avatar">
+        ${initials}
+        ${emp.onDuty !== undefined ? `<div class="duty-dot ${emp.onDuty ? 'on-duty' : 'off-duty'}"></div>` : ''}
+      </div>
+      <div class="emp-info">
+        <div class="ename">${emp.name}</div>
+        <div class="ecid">CID: ${emp.citizenid}</div>
+      </div>
+      <div class="emp-grade-badge">${emp.gradeLabel}</div>
+    </div>
+    ${actionsHTML}
+  `;
+  return card;
+}
+
+function toggleEmp(cid, rowEl) {
+  const actions = document.getElementById('emp-actions-' + cid);
+  if (!actions) return;
+
+  // Close previously expanded
+  if (expandedEmp && expandedEmp !== cid) {
+    const prev = document.getElementById('emp-actions-' + expandedEmp);
+    if (prev) prev.classList.remove('open');
+  }
+
+  const isOpen = actions.classList.contains('open');
+  actions.classList.toggle('open', !isOpen);
+  expandedEmp = isOpen ? null : cid;
+}
+
+async function changeGrade(cid) {
+  const select = document.getElementById('grade-select-' + cid);
+  if (!select) return;
+  const newGrade = parseInt(select.value);
+
+  const res = await sendCallback('changeGrade', { citizenid: cid, newGrade }, true);
+  if (res && res.success) {
+    // Update badge in the row
+    const card = document.querySelector(`.employee-card[data-cid="${cid}"]`);
+    if (card) {
+      const badge = card.querySelector('.emp-grade-badge');
+      if (badge) badge.textContent = res.newGradeLabel;
+    }
+    showToast('Rank updated to ' + res.newGradeLabel, 'success');
+    // Close
+    const actions = document.getElementById('emp-actions-' + cid);
+    if (actions) actions.classList.remove('open');
+    expandedEmp = null;
+  } else {
+    showToast(res && res.error ? res.error : 'Failed to update rank', 'error');
+  }
+}
+
+async function hirePlayer() {
+  const input = document.getElementById('hireInput');
+  const val   = input.value.trim();
+  if (!val) { showToast('Enter a Player ID or CID', 'error'); return; }
+
+  input.disabled = true;
+  const res = await sendCallback('hire', { targetId: val }, true);
+  input.disabled = false;
+
+  if (res && res.success) {
+    input.value = '';
+    showToast(res.employee.name + ' has been hired!', 'success');
+    // Append new employee to list
+    gradeOptions = gradeOptions; // already loaded
+    const empList = document.getElementById('employeeList');
+    const emptyState = empList.querySelector('.empty-state');
+    if (emptyState) empList.innerHTML = '';
+    empList.appendChild(buildEmpCard(res.employee));
+    const countLabel = document.getElementById('empCountLabel');
+    countLabel.textContent = 'Employees (' + (empList.querySelectorAll('.employee-card').length) + ')';
+  } else {
+    showToast(res && res.error ? res.error : 'Could not hire player', 'error');
+  }
+}
+
+let fireHoldTimer = null;
+let fireHoldStarted = false;
+let fireTargetCid = null;
+let fireTargetName = null;
+
+function startFireHold(cid, name) {
+  fireHoldStarted = true;
+  fireTargetCid = cid;
+  fireTargetName = name;
+  
+  const btn = event.target;
+  if (!btn) return;
+  
+  btn.textContent = 'Hold to Fire (3)';
+  btn.classList.add('holding');
+  
+  let countdown = 3;
+  fireHoldTimer = setInterval(function() {
+    countdown--;
+    if (countdown > 0) {
+      btn.textContent = 'Hold to Fire (' + countdown + ')';
+    } else {
+      clearInterval(fireHoldTimer);
+      executeFire(cid, name);
+    }
+  }, 1000);
+}
+
+function cancelFireHold() {
+  if (!fireHoldStarted) return;
+  
+  clearInterval(fireHoldTimer);
+  fireHoldStarted = false;
+  
+  const btn = event.target;
+  if (btn) {
+    btn.textContent = 'Fire';
+    btn.classList.remove('holding');
+  }
+}
+
+async function executeFire(cid, name) {
+  fireHoldStarted = false;
+  const res = await sendCallback('fire', { citizenid: cid }, true);
+  if (res && res.success) {
+    const card = document.querySelector('.employee-card[data-cid="' + cid + '"]');
+    if (card) card.remove();
+    const empList = document.getElementById('employeeList');
+    const countLabel = document.getElementById('empCountLabel');
+    countLabel.textContent = 'Employees (' + (empList.querySelectorAll('.employee-card').length) + ')'; 
+    showToast(name + ' has been fired.', 'error');
+  } else {
+    showToast(res && res.error ? res.error : 'Failed to fire employee', 'error');
+  }
+}
+
+async function confirmFire(cid, name) {
+  const res = await sendCallback('fire', { citizenid: cid }, true);
+  if (res && res.success) {
+    const card = document.querySelector(`.employee-card[data-cid="${cid}"]`);
+    if (card) card.remove();
+    const empList = document.getElementById('employeeList');
+    const countLabel = document.getElementById('empCountLabel');
+    countLabel.textContent = 'Employees (' + (empList.querySelectorAll('.employee-card').length) + ')'; 
+    showToast(name + ' has been fired.', 'error');
+  } else {
+    showToast(res && res.error ? res.error : 'Failed to fire employee', 'error');
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MODAL
+// ════════════════════════════════════════════════════════════════
+function openModal(title, body, action) {
+  document.getElementById('modalTitle').textContent  = title;
+  document.getElementById('modalBody').textContent   = body;
+  document.getElementById('confirmModal').classList.add('open');
+  modalAction = action;
+}
+function closeModal() {
+  document.getElementById('confirmModal').classList.remove('open');
+  modalAction = null;
+}
+function doModalAction() {
+  closeModal();
+  if (modalAction) modalAction();
+}
+
+// ════════════════════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════════════════════
+let toastTimer = null;
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = 'show' + (type ? ' ' + type : '');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = ''; }, 2800);
+}
+
+// ════════════════════════════════════════════════════════════════
+// SKELETON
+// ════════════════════════════════════════════════════════════════
+function skeletonCards(n) {
+  let html = '';
+  for (let i = 0; i < n; i++) {
+    html += `
+      <div class="skeleton-card">
+        <div class="skeleton skel-avatar"></div>
+        <div class="skel-lines">
+          <div class="skeleton skel-line1"></div>
+          <div class="skeleton skel-line2"></div>
+        </div>
+      </div>`;
+  }
+  return html;
+}
+
+// ════════════════════════════════════════════════════════════════
+// DEV TESTING (localhost only)
+// ════════════════════════════════════════════════════════════════
+if (window.location.protocol === 'file:' || window.location.hostname === 'localhost') {
+  setTimeout(() => {
+    window.dispatchEvent(new MessageEvent('message', { data: {
+      type: 'mphone:init',
+      player: { phoneNumber: '555-1001' },
+      theme: 'dark'
+    }}));
+    // Simulate server init response
+    const fakeInitId = Object.keys(pendingCBs)[0];
+    if (fakeInitId) {
+      window.dispatchEvent(new MessageEvent('message', { data: {
+        type: 'mphone:callback:response',
+        callbackId: fakeInitId,
+        result: {
+          success: true,
+          playerName: 'John Doe',
+          currentJob: 'police',
+          currentGradeLevel: 3,
+          currentGradeLabel: 'Sergeant',
+          canSeeBossMenu: true,
+          jobs: [
+            { name:'police',    label:'Police Department', icon:'🚔', grades:[{level:0,label:'Cadet'},{level:1,label:'Officer'},{level:2,label:'Corporal'},{level:3,label:'Sergeant'},{level:4,label:'Lieutenant'}] },
+            { name:'ambulance', label:'EMS',               icon:'🚑', grades:[{level:0,label:'Paramedic'},{level:1,label:'Senior Paramedic'},{level:2,label:'Supervisor'}] },
+            { name:'mechanic',  label:'Mechanic',          icon:'🔧', grades:[{level:0,label:'Apprentice'},{level:1,label:'Mechanic'},{level:2,label:'Lead Mechanic'}] },
+          ],
+          playerJobs: [
+            { name:'police', grade:3, gradeLabel:'Sergeant' },
+            { name:'ambulance', grade:1, gradeLabel:'Senior Paramedic' }
+          ]
+        }
+      }}));
+    }
+  }, 600);
+}
+</script>
+</body>
+</html>
