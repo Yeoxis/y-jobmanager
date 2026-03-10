@@ -168,6 +168,13 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:init', function(source, payl
     -- Get player's jobs
     local playerJobs = {}
     local multiJobsData = GetPlayerJobs(pd.citizenid)
+    
+    -- Auto-add active job to multijobs if it's missing (from /setjob or other commands)
+    if jobName ~= 'unemployed' and not multiJobsData[jobName] then
+        multiJobsData[jobName] = grade
+        SavePlayerJobs(pd.citizenid, multiJobsData)
+    end
+    
     for jName, jGrade in pairs(multiJobsData) do
         local jobCfg = Config.Jobs[jName]
         local sharedJob = QBCore.Shared.Jobs[jName]
@@ -395,13 +402,13 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:hire', function(source, payl
     -- Verify citizenid exists in database
     local exists = MySQL.scalar.await('SELECT citizenid FROM players WHERE citizenid = ?', { targetCitizenid })
     if not exists then
-        return cb({ success = false, error = 'Person not found' })
+        return cb({ success = false, error = 'Player not found' })
     end
     
     -- Check if they already have this job
     local jobs = GetPlayerJobs(targetCitizenid)
     if jobs[jobName] then
-        return cb({ success = false, error = 'Person already has this job' })
+        return cb({ success = false, error = 'Player already has this job' })
     end
     
     -- Add to multijobs
@@ -697,4 +704,3 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:getHours', function(source, 
         cb({ success = true, totalHours = 0, totalMins = 0, weeklyHours = 0, weeklyMins = 0 })
     end
 end)
-
