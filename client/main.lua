@@ -26,18 +26,20 @@ function LoadPhoneApp()
         return
     end
 
+    pcall(function() exports['codem-phone']:RemoveCustomApp('y-jobmanager') end)
+    Wait(300)
+
     local success = exports['codem-phone']:AddCustomApp({
         identifier   = 'y-jobmanager',
-        name         = 'Jobs',
+        name         = 'Jobby',
         icon         = 'nui://y-jobmanager/ui/icon.webp',
         ui           = htmlContent,
         description  = 'Manage your jobs and employees',
         defaultApp   = true,
+        notification = false,
     })
 
     if success then
         appRegistered = true
     end
 end
-
--- Listen for duty changes to refresh boss menu
