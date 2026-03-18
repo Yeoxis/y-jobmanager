@@ -31,7 +31,7 @@ function LoadPhoneApp()
 
     local success = exports['codem-phone']:AddCustomApp({
         identifier   = 'y-jobmanager',
-        name         = 'Jobby',
+        name         = 'Jobs',
         icon         = 'nui://y-jobmanager/ui/icon.webp',
         ui           = htmlContent,
         description  = 'Manage your jobs and employees',
