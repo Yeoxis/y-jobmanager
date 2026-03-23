@@ -129,9 +129,6 @@ local function SavePlayerJobs(citizenid, jobs)
     })
 end
 
--- ══════════════════════════════════════════════════════════════════
--- CODEM-PHONE CALLBACK: Init
--- ══════════════════════════════════════════════════════════════════
 AddEventHandler('codem-phone:customApp:y-jobmanager:init', function(source, payload, cb)
     
     local Player = QBCore.Functions.GetPlayer(source)
@@ -201,9 +198,6 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:init', function(source, payl
     })
 end)
 
--- ══════════════════════════════════════════════════════════════════
--- CODEM-PHONE CALLBACK: Switch job
--- ══════════════════════════════════════════════════════════════════
 AddEventHandler('codem-phone:customApp:y-jobmanager:switchJob', function(source, payload, cb)
     
     local Player = QBCore.Functions.GetPlayer(source)
@@ -255,9 +249,6 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:switchJob', function(source,
     cb({ success = false, error = 'You do not have this job' })
 end)
 
--- ══════════════════════════════════════════════════════════════════
--- CODEM-PHONE CALLBACK: Toggle duty
--- ══════════════════════════════════════════════════════════════════
 AddEventHandler('codem-phone:customApp:y-jobmanager:toggleDuty', function(source, payload, cb)
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return cb({ success = false }) end
@@ -285,17 +276,6 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:toggleDuty', function(source
     cb({ success = true, onDuty = newDutyState })
 end)
 
--- ══════════════════════════════════════════════════════════════════
--- SERVER EVENT: Change job
--- ══════════════════════════════════════════════════════════════════
-
--- ══════════════════════════════════════════════════════════════════
--- SERVER EVENT: Toggle duty
--- ══════════════════════════════════════════════════════════════════
-
--- ══════════════════════════════════════════════════════════════════
--- CODEM-PHONE CALLBACK: Get employees
--- ══════════════════════════════════════════════════════════════════
 AddEventHandler('codem-phone:customApp:y-jobmanager:getEmployees', function(source, payload, cb)
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return cb({ success = false }) end
@@ -367,9 +347,6 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:getEmployees', function(sour
     cb({ success = true, employees = employees, permissions = perms, grades = grades })
 end)
 
--- ══════════════════════════════════════════════════════════════════
--- CODEM-PHONE CALLBACK: Hire player
--- ══════════════════════════════════════════════════════════════════
 AddEventHandler('codem-phone:customApp:y-jobmanager:hire', function(source, payload, cb)
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return cb({ success = false, error = 'Player not found' }) end
@@ -452,9 +429,6 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:hire', function(source, payl
     })
 end)
 
--- ══════════════════════════════════════════════════════════════════
--- CODEM-PHONE CALLBACK: Fire employee
--- ══════════════════════════════════════════════════════════════════
 AddEventHandler('codem-phone:customApp:y-jobmanager:fire', function(source, payload, cb)
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return cb({ success = false, error = 'Player not found' }) end
@@ -521,9 +495,6 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:fire', function(source, payl
     })
 end)
 
--- ══════════════════════════════════════════════════════════════════
--- CODEM-PHONE CALLBACK: Change grade
--- ══════════════════════════════════════════════════════════════════
 AddEventHandler('codem-phone:customApp:y-jobmanager:changeGrade', function(source, payload, cb)
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return cb({ success = false, error = 'Player not found' }) end
@@ -594,9 +565,6 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:changeGrade', function(sourc
     })
 end)
 
--- ══════════════════════════════════════════════════════════════════
--- CODEM-PHONE CALLBACK: Quit job
--- ══════════════════════════════════════════════════════════════════
 AddEventHandler('codem-phone:customApp:y-jobmanager:quitJob', function(source, payload, cb)
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then 
@@ -703,4 +671,35 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:getHours', function(source, 
         -- No data yet
         cb({ success = true, totalHours = 0, totalMins = 0, weeklyHours = 0, weeklyMins = 0 })
     end
+end)
+
+exports('getEmployees', function(jobName)
+    local employees = {}
+    
+    -- Get all players from multijobs who have this job
+    local result = MySQL.query.await('SELECT citizenid, jobdata FROM multijobs')
+    if not result then return employees end
+    
+    for _, row in ipairs(result) do
+        local jobs = json.decode(row.jobdata or '{}')
+        if jobs[jobName] then
+            -- This player has this job, get their info
+            local playerInfo = MySQL.query.await('SELECT charinfo FROM players WHERE citizenid = ?', { row.citizenid })
+            if playerInfo and playerInfo[1] then
+                local charinfo = json.decode(playerInfo[1].charinfo)
+                local grade = jobs[jobName]
+                local sharedJob = QBCore.Shared.Jobs[jobName]
+                local gradeName = (sharedJob and sharedJob.grades[tostring(grade)]) and sharedJob.grades[tostring(grade)].name or 'Employee'
+                
+                table.insert(employees, {
+                    citizenid = row.citizenid,
+                    name = charinfo.firstname .. ' ' .. charinfo.lastname,
+                    grade = grade,
+                    grade_name = gradeName,
+                })
+            end
+        end
+    end
+    
+    return employees
 end)
