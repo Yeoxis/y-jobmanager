@@ -1,6 +1,8 @@
 A comprehensive job management app for CodeM Phone v2 & QBCore that includes multi-job functionalities, boss menu, time tracking, and discord webhooks. This is configured as a default app, you can change it if needed.
 I do **not** plan on adding anything other then QBCore but the files are open to do what you please with it!
 
+Showcase Video: https://www.youtube.com/watch?v=7WQ2GOFKGq0
+
 ## Dependencies
 - **OxMySQL**
 - **QBCore**
