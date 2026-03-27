@@ -129,6 +129,9 @@ local function SavePlayerJobs(citizenid, jobs)
     })
 end
 
+-- ══════════════════════════════════════════════════════════════════
+-- CODEM-PHONE CALLBACK: Init
+-- ══════════════════════════════════════════════════════════════════
 AddEventHandler('codem-phone:customApp:y-jobmanager:init', function(source, payload, cb)
     
     local Player = QBCore.Functions.GetPlayer(source)
@@ -198,6 +201,9 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:init', function(source, payl
     })
 end)
 
+-- ══════════════════════════════════════════════════════════════════
+-- CODEM-PHONE CALLBACK: Switch job
+-- ══════════════════════════════════════════════════════════════════
 AddEventHandler('codem-phone:customApp:y-jobmanager:switchJob', function(source, payload, cb)
     
     local Player = QBCore.Functions.GetPlayer(source)
@@ -224,23 +230,35 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:switchJob', function(source,
     
     for job, grade in pairs(jobs) do
         if cjob == job and tonumber(cgrade) == tonumber(grade) then
+            -- CLOCK OUT FROM OLD JOB IF ON DUTY
+            local oldJob = Player.PlayerData.job.name
+            local wasOnDuty = Player.PlayerData.job.onduty
+            
+            if wasOnDuty and oldJob ~= 'unemployed' then
+                exports['y-jobmanager']:HandleClockOut(source, oldJob)
+            end
+            
+            -- SET NEW JOB (ALWAYS OFF-DUTY)
             Player.Functions.SetJob(job, tonumber(grade))
+            Player.PlayerData.job.onduty = false
+            Player.Functions.SetPlayerData("job", Player.PlayerData.job)
+            
+            -- Trigger client events
+            TriggerClientEvent('QBCore:Client:SetDuty', source, false)
+            TriggerClientEvent('QBCore:Client:OnJobUpdate', source, Player.PlayerData.job)
             
             -- Get updated job info
             local sharedJob = QBCore.Shared.Jobs[job]
             local gradeData = sharedJob and sharedJob.grades[tostring(grade)]
             local gradeLabel = gradeData and gradeData.name or 'Employee'
-            local onDuty = Player.PlayerData.job.onduty or false
-            
             
             local canSeeBossMenu = CanSeeBossMenu(job, grade)
-            
             
             return cb({ 
                 success = true,
                 gradeLevel = grade,
                 gradeLabel = gradeLabel,
-                onDuty = onDuty,
+                onDuty = false,
                 canSeeBossMenu = canSeeBossMenu
             })
         end
@@ -249,6 +267,9 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:switchJob', function(source,
     cb({ success = false, error = 'You do not have this job' })
 end)
 
+-- ══════════════════════════════════════════════════════════════════
+-- CODEM-PHONE CALLBACK: Toggle duty
+-- ══════════════════════════════════════════════════════════════════
 AddEventHandler('codem-phone:customApp:y-jobmanager:toggleDuty', function(source, payload, cb)
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return cb({ success = false }) end
@@ -276,6 +297,17 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:toggleDuty', function(source
     cb({ success = true, onDuty = newDutyState })
 end)
 
+-- ══════════════════════════════════════════════════════════════════
+-- SERVER EVENT: Change job
+-- ══════════════════════════════════════════════════════════════════
+
+-- ══════════════════════════════════════════════════════════════════
+-- SERVER EVENT: Toggle duty
+-- ══════════════════════════════════════════════════════════════════
+
+-- ══════════════════════════════════════════════════════════════════
+-- CODEM-PHONE CALLBACK: Get employees
+-- ══════════════════════════════════════════════════════════════════
 AddEventHandler('codem-phone:customApp:y-jobmanager:getEmployees', function(source, payload, cb)
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return cb({ success = false }) end
@@ -347,6 +379,9 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:getEmployees', function(sour
     cb({ success = true, employees = employees, permissions = perms, grades = grades })
 end)
 
+-- ══════════════════════════════════════════════════════════════════
+-- CODEM-PHONE CALLBACK: Hire player
+-- ══════════════════════════════════════════════════════════════════
 AddEventHandler('codem-phone:customApp:y-jobmanager:hire', function(source, payload, cb)
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return cb({ success = false, error = 'Player not found' }) end
@@ -429,6 +464,9 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:hire', function(source, payl
     })
 end)
 
+-- ══════════════════════════════════════════════════════════════════
+-- CODEM-PHONE CALLBACK: Fire employee
+-- ══════════════════════════════════════════════════════════════════
 AddEventHandler('codem-phone:customApp:y-jobmanager:fire', function(source, payload, cb)
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return cb({ success = false, error = 'Player not found' }) end
@@ -495,6 +533,9 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:fire', function(source, payl
     })
 end)
 
+-- ══════════════════════════════════════════════════════════════════
+-- CODEM-PHONE CALLBACK: Change grade
+-- ══════════════════════════════════════════════════════════════════
 AddEventHandler('codem-phone:customApp:y-jobmanager:changeGrade', function(source, payload, cb)
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return cb({ success = false, error = 'Player not found' }) end
@@ -565,6 +606,9 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:changeGrade', function(sourc
     })
 end)
 
+-- ══════════════════════════════════════════════════════════════════
+-- CODEM-PHONE CALLBACK: Quit job
+-- ══════════════════════════════════════════════════════════════════
 AddEventHandler('codem-phone:customApp:y-jobmanager:quitJob', function(source, payload, cb)
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then 
@@ -673,6 +717,10 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:getHours', function(source, 
     end
 end)
 
+
+-- ══════════════════════════════════════════════════════════════════
+-- EXPORT: Get employees for ps-mdt compatibility
+-- ══════════════════════════════════════════════════════════════════
 exports('getEmployees', function(jobName)
     local employees = {}
     
@@ -702,4 +750,52 @@ exports('getEmployees', function(jobName)
     end
     
     return employees
+end)
+
+-- ══════════════════════════════════════════════════════════════════
+-- AUTO CLOCK OUT: On disconnect
+-- ══════════════════════════════════════════════════════════════════
+AddEventHandler('playerDropped', function(reason)
+    local src = source
+    local Player = QBCore.Functions.GetPlayer(src)
+    if not Player then return end
+    
+    local jobName = Player.PlayerData.job.name
+    local onDuty = Player.PlayerData.job.onduty
+    
+    -- If they were on duty, clock them out
+    if onDuty and jobName ~= 'unemployed' then
+        exports['y-jobmanager']:HandleClockOut(src, jobName)
+    end
+end)
+
+-- ══════════════════════════════════════════════════════════════════
+-- AUTO CLOCK OUT: On job switch via external systems
+-- ══════════════════════════════════════════════════════════════════
+RegisterNetEvent('QBCore:Server:OnJobUpdate', function(jobName)
+    local src = source
+    local Player = QBCore.Functions.GetPlayer(src)
+    if not Player then return end
+    
+    local oldJob = Player.PlayerData.job.name
+    local wasOnDuty = Player.PlayerData.job.onduty
+    
+    -- If switching jobs while on duty, clock out from old job
+    if wasOnDuty and oldJob ~= jobName and oldJob ~= 'unemployed' then
+        exports['y-jobmanager']:HandleClockOut(src, oldJob)
+    end
+end)
+
+-- ══════════════════════════════════════════════════════════════════
+-- AUTO SET OFF-DUTY: On player loaded
+-- ══════════════════════════════════════════════════════════════════
+RegisterNetEvent('QBCore:Server:PlayerLoaded', function(Player)
+    if not Player then return end
+    
+    -- Force off-duty on login
+    if Player.PlayerData.job.onduty then
+        Player.PlayerData.job.onduty = false
+        Player.Functions.SetPlayerData("job", Player.PlayerData.job)
+        TriggerClientEvent('QBCore:Client:SetDuty', Player.PlayerData.source, false)
+    end
 end)
