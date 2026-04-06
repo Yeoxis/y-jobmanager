@@ -239,25 +239,39 @@ AddEventHandler('codem-phone:customApp:y-jobmanager:switchJob', function(source,
             end
             
             -- SET NEW JOB (ALWAYS OFF-DUTY)
-            Player.Functions.SetJob(job, tonumber(grade))
-            Player.PlayerData.job.onduty = false
+            local sharedJob = QBCore.Shared.Jobs[job]
+            local gradeData = sharedJob and sharedJob.grades[tostring(grade)]
+            
+            if not sharedJob or not gradeData then
+                return cb({ success = false, error = 'Invalid job configuration' })
+            end
+            
+            Player.PlayerData.job = {
+                name = job,
+                label = sharedJob.label,
+                payment = gradeData.payment or 0,
+                onduty = false,
+                isboss = gradeData.isboss or false,
+                type = sharedJob.type or 'none',
+                grade = {
+                    name = gradeData.name,
+                    level = tonumber(grade)
+                }
+            }
+            
             Player.Functions.SetPlayerData("job", Player.PlayerData.job)
+            Player.Functions.Save()
             
             -- Trigger client events
             TriggerClientEvent('QBCore:Client:SetDuty', source, false)
             TriggerClientEvent('QBCore:Client:OnJobUpdate', source, Player.PlayerData.job)
-            
-            -- Get updated job info
-            local sharedJob = QBCore.Shared.Jobs[job]
-            local gradeData = sharedJob and sharedJob.grades[tostring(grade)]
-            local gradeLabel = gradeData and gradeData.name or 'Employee'
             
             local canSeeBossMenu = CanSeeBossMenu(job, grade)
             
             return cb({ 
                 success = true,
                 gradeLevel = grade,
-                gradeLabel = gradeLabel,
+                gradeLabel = gradeData.name,
                 onDuty = false,
                 canSeeBossMenu = canSeeBossMenu
             })
