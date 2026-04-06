@@ -3,7 +3,7 @@ game 'gta5'
 
 author 'Yeox'
 description 'Job Manager - Multi Job, Boss Menu, and Timeclock Tracking App for CodeM Phone v2'
-version '1.1.3'
+version '1.1.4'
 
 shared_scripts {
     'config.lua'
